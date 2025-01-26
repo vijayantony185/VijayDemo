@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -49,6 +50,32 @@ public class ServerManager {
                         // new Handler(Looper.getMainLooper()).post(() -> receivedMessages.setValue(message));
                     }
                 }
+
+                /*while (isServerRunning) {
+                    try (Socket clientSocket = serverSocket.accept();
+                         BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                         PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true)) {
+
+                        Log.d("ServerManager", "Client connected: " + clientSocket.getInetAddress());
+
+                        String message = reader.readLine(); // Read the message from the client
+                        if (message != null) {
+                            Log.d("ServerManager", "Received message: " + message);
+
+                            // Post the received message
+                            receivedMessages.postValue(message);
+
+                            // Send a response back to the client
+                            String response = "Message received: " + message;
+                            writer.println(response);
+                        } else {
+                            Log.d("ServerManager", "Received null message from client.");
+                        }
+                    } catch (Exception e) {
+                        Log.e("ServerManager", "Error processing client connection: " + e.getMessage());
+                    }
+                }*/
+
             } catch (Exception e) {
                 Log.e("ServerManager", "Server error: " + e.getMessage());
             }
