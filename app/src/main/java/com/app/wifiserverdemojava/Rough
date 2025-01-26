@@ -1,0 +1,235 @@
+// Manifest
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.accessibilityoverlay">
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Accessibility Overlay"
+        android:theme="@style/Theme.App">
+
+        <!-- Accessibility Service -->
+        <service
+            android:name=".MyAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+</manifest>
+
+
+2. Accessibility Service Configuration
+Create a file res/xml/accessibility_service_config.xml to configure the service.
+
+<accessibility-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked"
+    android:accessibilityFeedbackType="feedbackSpoken"
+    android:notificationTimeout="100"
+    android:canRetrieveWindowContent="true"
+    android:description="Accessibility Overlay"
+    android:accessibilityFlags="flagDefault" />
+
+
+Here's a complete implementation, combining the accessibility service, overlay functionality, and other required components:
+
+1. Manifest File
+Define permissions and the accessibility service.
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.accessibilityoverlay">
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Accessibility Overlay"
+        android:theme="@style/Theme.App">
+
+        <!-- Accessibility Service -->
+        <service
+            android:name=".MyAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+</manifest>
+
+
+2. Accessibility Service Configuration
+Create a file res/xml/accessibility_service_config.xml to configure the service.
+
+<accessibility-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked"
+    android:accessibilityFeedbackType="feedbackSpoken"
+    android:notificationTimeout="100"
+    android:canRetrieveWindowContent="true"
+    android:description="Accessibility Overlay"
+    android:accessibilityFlags="flagDefault" />
+
+
+3. Accessibility Service
+Create a service MyAccessibilityService.
+
+package com.example.accessibilityoverlay;
+
+import android.accessibilityservice.AccessibilityService;
+import android.util.Log;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+public class MyAccessibilityService extends AccessibilityService {
+    private OverlayManager overlayManager;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        overlayManager = new OverlayManager(this);
+    }
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
+        AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+        if (rootNode != null) {
+            overlayManager.clearOverlays(); // Clear previous overlays
+            addNumbersToViews(rootNode, 1);
+        }
+    }
+
+    @Override
+    public void onInterrupt() {
+        Log.e("AccessibilityService", "Service interrupted.");
+    }
+
+    private int addNumbersToViews(AccessibilityNodeInfo node, int number) {
+        if (node == null) return number;
+
+        if (node.getChildCount() == 0 && node.getText() != null) {
+            // Display overlay for each view with text
+            overlayManager.showOverlay(node, String.valueOf(number));
+            return number + 1;
+        }
+
+        // Recursively process children
+        for (int i = 0; i < node.getChildCount(); i++) {
+            number = addNumbersToViews(node.getChild(i), number);
+        }
+        return number;
+    }
+}
+
+
+4. Overlay Manager
+Create OverlayManager to manage the overlays.
+
+package com.example.accessibilityoverlay;
+
+import android.content.Context;
+import android.graphics.PixelFormat;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class OverlayManager {
+    private final Context context;
+    private final WindowManager windowManager;
+    private final List<View> overlays = new ArrayList<>();
+
+    public OverlayManager(Context context) {
+        this.context = context;
+        this.windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+    }
+
+    public void showOverlay(AccessibilityNodeInfo node, String number) {
+        // Inflate overlay layout
+        View overlayView = LayoutInflater.from(context).inflate(R.layout.overlay_layout, null);
+        TextView textView = overlayView.findViewById(R.id.textView);
+        textView.setText(number);
+
+        // Get screen position of the node
+        int[] screenPos = new int[2];
+        node.getBoundsInScreen(new android.graphics.Rect()).offsetTo(screenPos[0], screenPos[1]);
+
+        // Configure layout params
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+        );
+        params.gravity = Gravity.TOP | Gravity.LEFT;
+        params.x = screenPos[0];
+        params.y = screenPos[1];
+
+        // Add overlay to window manager
+        windowManager.addView(overlayView, params);
+        overlays.add(overlayView);
+    }
+
+    public void clearOverlays() {
+        for (View overlay : overlays) {
+            windowManager.removeView(overlay);
+        }
+        overlays.clear();
+    }
+}
+
+
+5. Overlay Layout
+Create a layout file res/layout/overlay_layout.xml for the overlay view.
+
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/overlay_background"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+</FrameLayout>
+
+6. Overlay Background
+Add a drawable resource res/drawable/overlay_background.xml for styling.
+
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#80000000" />
+    <corners android:radius="8dp" />
+</shape>
+
+
+7. Request Accessibility Permission
+Prompt the user to enable the service programmatically.
+
+Intent intent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+startActivity(intent);
+
+
+
