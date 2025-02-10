@@ -1,0 +1,41 @@
+@Composable
+fun TwelveColumnGrid(
+    modifier: Modifier = Modifier,
+    leftMargin: Dp = 21.dp,
+    rightMargin: Dp = 21.dp,
+    spaceBetween: Dp = 18.dp,
+    columns: Int = 12
+) {
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val screenWidth = size.width
+        val screenHeight = size.height
+
+        val leftMarginPx = leftMargin.toPx()
+        val rightMarginPx = rightMargin.toPx()
+        val spaceBetweenPx = spaceBetween.toPx()
+
+        // Calculate column width
+        val totalSpacing = spaceBetweenPx * (columns - 1)
+        val availableWidth = screenWidth - leftMarginPx - rightMarginPx - totalSpacing
+        val columnWidth = availableWidth / columns
+
+        // Draw vertical column lines
+        for (i in 0 until columns) {
+            val x = leftMarginPx + (i * (columnWidth + spaceBetweenPx))
+           /* drawLine(
+                color = Color.Gray,
+                start = Offset(x, 0f),
+                end = Offset(x, screenHeight),
+                strokeWidth = 1.dp.toPx()
+            )*/
+            drawRect(
+                color = Color(0xFFD0F0C0), // Light green background
+                topLeft = Offset(x, 0f),
+                size = Size(columnWidth, screenHeight)
+            )
+        }
+
+      /*  // Draw left and right margin lines (for visualization)
+        drawLine(Color.Red, Offset(leftMarginPx, 0f), Offset(leftMarginPx, screenHeight), 2.dp.toPx())
+        drawLine(Color.Red, Offset(screenWidth - rightMarginPx, 0f), Offset(screenWidth - rightMarginPx, screenHeight), 2.dp.toPx())*/
+    }
